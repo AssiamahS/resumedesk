@@ -226,7 +226,7 @@ button { cursor: pointer; }
   #docName { font-size: 15px; }
   #docPicker { flex: 1; min-width: 0; }
   .actions { margin-left: 0; }
-  .actions .btn:not(.primary) { display: none; }
+  .actions .btn:not(.primary):not([data-act="open"]) { display: none; }
   .toolbar .wide { display: none; }
   .canvas { padding-block: 14px 40px; }
 }
@@ -504,7 +504,7 @@ function openDoc(id) {
   page.innerHTML = d.html || '<p><br></p>';
   $('#docName').value = d.name; $('#sizeVal').value = 8.9;
   persist(); renderLists(); refreshStatus();
-  $('#saved').textContent = d.updated ? 'Saved in this browser ' + fmtTime(d.updated) : 'Original version';
+  $('#saved').textContent = d.updated ? (NATIVE ? 'Saved on this iPhone ' : 'Saved in this browser ') + fmtTime(d.updated) : 'Original version';
   $('#canvas').scrollTop = 0;
 }
 
@@ -515,7 +515,7 @@ function saveLocal(quiet) {
   d.html = cleanHtml(); d.name = $('#docName').value.trim() || 'Untitled document';
   d.updated = Date.now(); dirty = false;
   const ok = persist();
-  if (!quiet) $('#saved').textContent = ok ? 'Saved in this browser ' + fmtTime(d.updated) : 'Browser storage unavailable — save to Files';
+  if (!quiet) $('#saved').textContent = ok ? (NATIVE ? 'Saved on this iPhone ' : 'Saved in this browser ') + fmtTime(d.updated) : 'Browser storage unavailable — save to Files';
   renderLists();
 }
 function markDirty() {
