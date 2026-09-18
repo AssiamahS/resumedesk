@@ -1,0 +1,129 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (unsigned compile check)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build for device (unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ResumeDesk.xcodeproj \
+            -scheme ResumeDesk \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+  adhoc:
+    name: Sign ad hoc IPA + install page
+    runs-on: macos-26
+    timeout-minutes: 45
+    needs: build
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s' "$ASC_KEY_P8" | base64 --decode > "$RUNNER_TEMP/asc/AuthKey.p8"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: |
+          # stamp the run number BEFORE generating — xcodegen bakes CFBundleVersion into the plist
+          sed -i '' "s/^    CURRENT_PROJECT_VERSION: .*/    CURRENT_PROJECT_VERSION: $GITHUB_RUN_NUMBER/" project.yml
+          xcodegen generate
+
+      - name: Archive (unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          # archive UNSIGNED; exportArchive does the cloud signing (a signed archive mints a
+          # throwaway "Created via API" dev cert per run and fills the 10-cert cap)
+          xcodebuild archive \
+            -project ResumeDesk.xcodeproj \
+            -scheme ResumeDesk \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/ResumeDesk.xcarchive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=$GITHUB_RUN_NUMBER
+
+      - name: Export ad hoc IPA (registered devices only)
+        working-directory: ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath build/ResumeDesk.xcarchive \
+            -exportOptionsPlist ExportOptionsAdHoc.plist \
+            -exportPath build/adhoc \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          ls -la build/adhoc
+
+      - name: Publish install page to GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p web/ipa
+          cp ios/build/adhoc/*.ipa web/ipa/ResumeDesk.ipa
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' ios/build/ResumeDesk.xcarchive/Products/Applications/ResumeDesk.app/Info.plist)
+          cat > web/ipa/manifest.plist <<EOF2
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>items</key><array><dict>
+            <key>assets</key><array>
+              <dict><key>kind</key><string>software-package</string><key>url</key><string>https://assiamahs.github.io/resumedesk/ipa/ResumeDesk.ipa</string></dict>
+              <dict><key>kind</key><string>display-image</string><key>url</key><string>https://assiamahs.github.io/resumedesk/icon-180.png</string></dict>
+              <dict><key>kind</key><string>full-size-image</string><key>url</key><string>https://assiamahs.github.io/resumedesk/icon-512.png</string></dict>
+            </array>
+            <key>metadata</key><dict>
+              <key>bundle-identifier</key><string>com.assiamah.resumedesk</string>
+              <key>bundle-version</key><string>${VERSION}</string>
+              <key>kind</key><string>software</string>
+              <key>title</key><string>Resume Desk</string>
+            </dict>
+          </dict></array></dict></plist>
+          EOF2
+          sed -i '' -E "s/<span id=\"build\">[^<]*<\/span>/<span id=\"build\">Build $GITHUB_RUN_NUMBER (v$VERSION) · $(date -u +%Y-%m-%d)<\/span>/" web/install.html
+          git checkout -- ios/project.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f web/ipa web/install.html
+          git commit -m "build: ad hoc IPA build $GITHUB_RUN_NUMBER" || exit 0
+          # binaries don't rebase well; retry on top of whatever landed meanwhile
+          for i in 1 2 3; do
+            git push origin HEAD:main && break
+            git pull --rebase -X theirs origin main || true
+          done
+          # a GITHUB_TOKEN push never triggers other workflows; dispatch Pages explicitly
+          gh workflow run pages.yml --ref main

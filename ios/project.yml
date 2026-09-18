@@ -1,0 +1,69 @@
+name: ResumeDesk
+options:
+  bundleIdPrefix: com.assiamah
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "26.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: QGMAWHX827
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  ResumeDesk:
+    type: application
+    platform: iOS
+    sources:
+      - path: ResumeDesk
+        excludes: ["web/**"]
+      # the editor ships as a folder so web/editor.html can load lib/*.js next to it
+      - path: ResumeDesk/web
+        type: folder
+        buildPhase: resources
+    info:
+      path: ResumeDesk/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: Resume Desk
+        CFBundleIconName: AppIcon
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        ITSAppUsesNonExemptEncryption: false
+        # "On My iPhone > Resume Desk" in Files, and edit-in-place for files opened from Files
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Document
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - net.daringfireball.markdown
+              - public.plain-text
+              - public.html
+              - com.adobe.pdf
+              - org.openxmlformats.wordprocessingml.document
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: net.daringfireball.markdown
+            UTTypeDescription: Markdown
+            UTTypeConformsTo: [public.plain-text]
+            UTTypeTagSpecification:
+              public.filename-extension: [md, markdown]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.assiamah.resumedesk
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+schemes:
+  ResumeDesk:
+    build:
+      targets:
+        ResumeDesk: all
+    run:
+      config: Debug

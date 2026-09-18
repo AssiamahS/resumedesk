@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Resume Desk</title>
+<meta name="description" content="Edit resumes and documents like Google Docs, save to files, download as PDF.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --ground: #e4e7ec;
+  --chrome: #f7f8fa;
+  --chrome-2: #eef0f4;
+  --ink: #1a1e24;
+  --muted: #5b6472;
+  --line: #d3d7de;
+  --accent: #1f5fae;
+  --accent-soft: #dce7f6;
+  --warn: #a4480f;
+  --warn-soft: #fbe9dc;
+  --ok: #2b7249;
+  --ok-soft: #dff0e5;
+  --paper: #ffffff;
+  --paper-ink: #111111;
+  --shadow: 0 1px 2px rgba(20, 30, 50, .10), 0 6px 24px rgba(20, 30, 50, .10);
+  --ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --doc: Carlito, Calibri, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #14171c; --chrome: #1c2026; --chrome-2: #242931; --ink: #e6e9ee;
+    --muted: #9aa3b0; --line: #2f353e; --accent: #7aa9ea; --accent-soft: #22324a;
+    --warn: #f0a068; --warn-soft: #3a2618; --ok: #7ccf9a; --ok-soft: #1c3326;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #14171c; --chrome: #1c2026; --chrome-2: #242931; --ink: #e6e9ee;
+  --muted: #9aa3b0; --line: #2f353e; --accent: #7aa9ea; --accent-soft: #22324a;
+  --warn: #f0a068; --warn-soft: #3a2618; --ok: #7ccf9a; --ok-soft: #1c3326;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.45);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font: 14px/1.4 var(--ui);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- top bar ---------- */
+.top {
+  background: var(--chrome); border-bottom: 1px solid var(--line);
+  padding: 8px 16px 0; display: flex; flex-direction: column; gap: 6px;
+  flex: none;
+}
+.titlerow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mark {
+  width: 30px; height: 36px; flex: none; border-radius: 3px;
+  background: var(--paper); border: 1px solid var(--line);
+  position: relative; box-shadow: 0 1px 1px rgba(0,0,0,.06);
+}
+.mark::before, .mark::after {
+  content: ""; position: absolute; left: 6px; right: 6px; height: 2px; background: var(--accent);
+}
+.mark::before { top: 9px; }
+.mark::after { top: 15px; box-shadow: 0 6px 0 var(--line), 0 12px 0 var(--line); background: var(--line); }
+.titleblock { display: flex; flex-direction: column; min-width: 0; flex: 1 1 220px; }
+#docName {
+  border: 1px solid transparent; background: transparent; border-radius: 4px;
+  font-size: 17px; font-weight: 500; padding: 1px 6px; margin-left: -6px; width: 100%; max-width: 520px;
+}
+#docName:hover { border-color: var(--line); }
+#docName:focus { border-color: var(--accent); background: var(--paper); color: var(--paper-ink); outline: none; }
+.menus { display: flex; gap: 2px; flex-wrap: wrap; margin-left: -8px; }
+.menu { position: relative; }
+.menu > button {
+  background: none; border: 0; padding: 2px 8px; border-radius: 4px; font-size: 13.5px;
+}
+.menu > button:hover, .menu.open > button { background: var(--chrome-2); }
+.dropdown {
+  position: absolute; top: calc(100% + 2px); left: 0; z-index: 30; min-width: 250px;
+  background: var(--chrome); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: var(--shadow); padding: 5px 0; display: none;
+}
+.menu.open .dropdown { display: block; }
+.dropdown button {
+  display: flex; justify-content: space-between; gap: 18px; width: 100%;
+  background: none; border: 0; text-align: left; padding: 6px 14px; font-size: 13.5px;
+}
+.dropdown button:hover { background: var(--accent-soft); }
+.dropdown kbd, .dropdown .hint { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.dropdown hr { border: 0; border-top: 1px solid var(--line); margin: 5px 0; }
+.dropdown .label {
+  padding: 4px 14px 2px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.btn {
+  border: 1px solid var(--line); background: var(--chrome); border-radius: 18px;
+  padding: 6px 14px; font-size: 13.5px; font-weight: 500; white-space: nowrap;
+}
+.btn:hover { background: var(--chrome-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #0e1622; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #0e1622; } }
+.btn.primary:hover { filter: brightness(1.08); }
+
+/* ---------- toolbar ---------- */
+.toolbar {
+  display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+  background: var(--chrome-2); border-radius: 20px; padding: 3px 8px; margin-bottom: 8px;
+}
+.tb {
+  background: none; border: 0; border-radius: 4px; min-width: 28px; height: 28px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 13.5px;
+}
+.tb:hover { background: var(--line); }
+.tb.on { background: var(--accent-soft); color: var(--accent); }
+.tb svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sep { width: 1px; height: 20px; background: var(--line); margin: 0 5px; }
+.toolbar select {
+  height: 28px; border: 0; background: none; border-radius: 4px; padding: 0 4px; font-size: 13.5px;
+}
+.toolbar select:hover { background: var(--line); }
+.size { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 4px; height: 26px; }
+.size button { background: none; border: 0; width: 22px; height: 24px; }
+.size input { width: 38px; text-align: center; border: 0; background: none; font-family: var(--mono); font-size: 12.5px; height: 24px; }
+
+/* ---------- workspace ---------- */
+.work { flex: 1; display: flex; min-height: 0; }
+.rail {
+  width: 232px; flex: none; border-right: 1px solid var(--line); background: var(--chrome);
+  overflow-y: auto; padding: 14px 10px; display: flex; flex-direction: column; gap: 4px;
+}
+.rail h2 {
+  font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted); margin: 6px 8px 4px;
+}
+.doc-item {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px;
+  border: 0; background: none; text-align: left; border-radius: 6px; padding: 7px 8px; width: 100%;
+}
+.doc-item:hover { background: var(--chrome-2); }
+.doc-item.active { background: var(--accent-soft); }
+.doc-item .n { font-size: 13.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-item .m { font-family: var(--mono); font-size: 11px; color: var(--muted); grid-column: 1 / -1; }
+.doc-item .x {
+  opacity: 0; border: 0; background: none; color: var(--muted); border-radius: 4px; width: 22px; height: 22px; font-size: 15px;
+}
+.doc-item:hover .x, .doc-item.active .x { opacity: 1; }
+.doc-item .x:hover { background: var(--line); color: var(--ink); }
+.rail .new { margin: 8px 4px 0; }
+
+.canvas { flex: 1; overflow: auto; padding-block: 28px 80px; padding-inline: 16px; min-width: 0; }
+.pagewrap { width: fit-content; margin: 0 auto; }
+.page {
+  /* US Letter with the build.sh margins: 0.4 top, 0.35 bottom, 0.5 sides */
+  /* each 11in sheet is painted separately with a 14px gap, like Docs' page view;
+     paginate() pushes any block that would cross a sheet edge onto the next sheet */
+  width: 8.5in; min-height: 11in; color: var(--paper-ink);
+  padding: .4in .5in .35in; position: relative;
+  font-family: var(--doc); font-size: 9.2pt; line-height: 1.1;
+  font-variant-ligatures: none;
+  background: repeating-linear-gradient(to bottom,
+    var(--paper) 0, var(--paper) 11in, transparent 11in, transparent calc(11in + 14px));
+  filter: drop-shadow(0 1px 2px rgba(20, 30, 50, .14)) drop-shadow(0 4px 12px rgba(20, 30, 50, .10));
+}
+.page:focus { outline: none; }
+.page h1 { font-size: 14pt; margin: 0 0 1pt; font-weight: 700; }
+.page h2 { font-size: 10.2pt; margin: 5pt 0 1pt; font-weight: 700; }
+.page h3 { font-size: 9.2pt; margin: 3pt 0 1pt; font-weight: 700; }
+.page p { margin: 0; font-size: 8.9pt; }
+.page ul, .page ol { margin: 1pt 0 3pt; padding-left: 14pt; }
+.page li { margin: 0; }
+.page a { color: inherit; }
+.page-break-label {
+  position: absolute; right: -2px; transform: translateX(100%); padding-left: 8px;
+  font: 500 11px var(--mono); color: var(--warn); white-space: nowrap; pointer-events: none;
+}
+
+/* ---------- status bar ---------- */
+.status {
+  flex: none; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 5px 16px calc(5px + env(safe-area-inset-bottom, 0px));
+  background: var(--chrome); border-top: 1px solid var(--line);
+  font: 12px var(--mono); color: var(--muted);
+}
+.pill { padding: 1px 9px; border-radius: 10px; font-weight: 500; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.status .grow { flex: 1; }
+.zoom { display: inline-flex; gap: 4px; align-items: center; }
+.zoom button { border: 1px solid var(--line); background: none; border-radius: 4px; width: 22px; height: 20px; line-height: 1; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 46px; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: var(--ground); padding: 9px 16px; border-radius: 6px;
+  font-size: 13.5px; opacity: 0; transition: opacity .18s, transform .18s; pointer-events: none; z-index: 50;
+  max-width: calc(100vw - 32px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+#docPicker { display: none; }
+@media (max-width: 900px) {
+  .rail { display: none; }
+  #docPicker {
+    display: block; max-width: 100%; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--chrome); padding: 4px 6px; font-size: 13px;
+  }
+  .page-break-label { display: none; }
+}
+@media (max-width: 560px) {
+  .mark { display: none; }
+  .top { gap: 4px; }
+  .titleblock { flex-basis: 100%; }
+  #docName { font-size: 15px; }
+  #docPicker { flex: 1; min-width: 0; }
+  .actions { margin-left: 0; }
+  .actions .btn:not(.primary) { display: none; }
+  .toolbar .wide { display: none; }
+  .canvas { padding-block: 14px 40px; }
+}
+/* inside the iPhone app the web view already sits below the status bar */
+.native .top { padding-top: 6px; }
+
+@media print {
+  @page { size: letter; margin: 0; }
+  body { display: block; overflow: visible; background: #fff; height: auto; }
+  .top, .rail, .status, .toast, .page-break-label { display: none !important; }
+  .work, .canvas { display: block; overflow: visible; padding: 0; }
+  .pagewrap { zoom: 1 !important; }
+  .page { filter: none; background: #fff; width: auto; min-height: 0 !important; }
+}
+</style>
+
+<header class="top">
+  <div class="titlerow">
+    <div class="mark" aria-hidden="true"></div>
+    <div class="titleblock">
+      <input id="docName" aria-label="Document name" spellcheck="false">
+      <nav class="menus" aria-label="Menus">
+        <div class="menu" id="mFile">
+          <button type="button" aria-haspopup="true">File</button>
+          <div class="dropdown" role="menu">
+            <button type="button" data-act="new">New blank document</button>
+            <button type="button" data-act="open">Open file… <span class="hint">.md .html .txt .pdf .docx</span></button>
+            <button type="button" data-act="duplicate">Make a copy</button>
+            <hr>
+            <button type="button" data-act="save">Save <kbd>⌘S</kbd></button>
+            <button type="button" data-act="saveas">Save to Files as .md…</button>
+            <hr>
+            <div class="label">Download</div>
+            <button type="button" data-act="pdf">PDF document <span class="hint">.pdf</span></button>
+            <button type="button" data-act="md">Markdown, for build.sh <span class="hint">.md</span></button>
+            <button type="button" data-act="html">Web page <span class="hint">.html</span></button>
+            <button type="button" data-act="txt">Plain text <span class="hint">.txt</span></button>
+            <hr>
+            <button type="button" data-act="share" id="shareItem" hidden>Share PDF… <span class="hint">Mail, AirDrop</span></button>
+            <button type="button" data-act="print">Print… <kbd>⌘P</kbd></button>
+            <button type="button" data-act="revert">Revert to original</button>
+          </div>
+        </div>
+        <div class="menu" id="mEdit">
+          <button type="button" aria-haspopup="true">Edit</button>
+          <div class="dropdown" role="menu">
+            <button type="button" data-cmd="undo">Undo <kbd>⌘Z</kbd></button>
+            <button type="button" data-cmd="redo">Redo <kbd>⇧⌘Z</kbd></button>
+            <hr>
+            <button type="button" data-cmd="selectAll">Select all <kbd>⌘A</kbd></button>
+            <button type="button" data-act="find">Find and replace <kbd>⌘F</kbd></button>
+          </div>
+        </div>
+        <div class="menu" id="mFormat">
+          <button type="button" aria-haspopup="true">Format</button>
+          <div class="dropdown" role="menu">
+            <button type="button" data-block="h1">Name / title</button>
+            <button type="button" data-block="h2">Section heading</button>
+            <button type="button" data-block="h3">Role line</button>
+            <button type="button" data-block="p">Normal text</button>
+            <hr>
+            <button type="button" data-cmd="removeFormat">Clear formatting <kbd>⌘\</kbd></button>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <select id="docPicker" aria-label="Document"></select>
+    <div class="actions">
+      <button type="button" class="btn" data-act="open">Open</button>
+      <button type="button" class="btn" data-act="save">Save</button>
+      <button type="button" class="btn primary" data-act="pdf">Download PDF</button>
+    </div>
+  </div>
+
+  <div class="toolbar" role="toolbar" aria-label="Formatting">
+    <button type="button" class="tb" data-cmd="undo" title="Undo (⌘Z)"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button type="button" class="tb" data-cmd="redo" title="Redo (⇧⌘Z)"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+    <span class="sep"></span>
+    <select id="blockStyle" aria-label="Paragraph style">
+      <option value="p">Normal text</option>
+      <option value="h1">Name / title</option>
+      <option value="h2">Section heading</option>
+      <option value="h3">Role line</option>
+    </select>
+    <span class="sep"></span>
+    <span class="size" title="Font size (pt)">
+      <button type="button" id="sizeDown" aria-label="Smaller">−</button>
+      <input id="sizeVal" aria-label="Font size in points" inputmode="decimal">
+      <button type="button" id="sizeUp" aria-label="Larger">+</button>
+    </span>
+    <span class="sep"></span>
+    <button type="button" class="tb" data-cmd="bold" title="Bold (⌘B)"><b>B</b></button>
+    <button type="button" class="tb" data-cmd="italic" title="Italic (⌘I)"><i style="font-family:Georgia,serif">I</i></button>
+    <button type="button" class="tb" data-cmd="underline" title="Underline (⌘U)"><u>U</u></button>
+    <span class="sep wide"></span>
+    <button type="button" class="tb wide" data-cmd="justifyLeft" title="Align left"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg></button>
+    <button type="button" class="tb wide" data-cmd="justifyCenter" title="Center"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 10h10M4 14h16M7 18h10"/></svg></button>
+    <button type="button" class="tb wide" data-cmd="justifyRight" title="Align right"><svg viewBox="0 0 24 24"><path d="M4 6h16M10 10h10M4 14h16M10 18h10"/></svg></button>
+    <span class="sep"></span>
+    <button type="button" class="tb" data-cmd="insertUnorderedList" title="Bulleted list"><svg viewBox="0 0 24 24"><circle cx="5" cy="7" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="17" r="1" fill="currentColor"/><path d="M9 7h11M9 12h11M9 17h11"/></svg></button>
+    <button type="button" class="tb" data-cmd="insertOrderedList" title="Numbered list"><svg viewBox="0 0 24 24"><path d="M10 7h10M10 12h10M10 17h10"/><path d="M4 5h1.5v4M4 9h3M4 15.2c.3-.6.9-1 1.6-1 .8 0 1.4.5 1.4 1.2 0 1.1-3 1.8-3 3h3" stroke-width="1.4"/></svg></button>
+    <button type="button" class="tb wide" data-cmd="outdent" title="Decrease indent"><svg viewBox="0 0 24 24"><path d="M11 7h9M11 12h9M11 17h9M7 9l-3 3 3 3"/></svg></button>
+    <button type="button" class="tb wide" data-cmd="indent" title="Increase indent"><svg viewBox="0 0 24 24"><path d="M11 7h9M11 12h9M11 17h9M4 9l3 3-3 3"/></svg></button>
+    <span class="sep wide"></span>
+    <button type="button" class="tb wide" data-cmd="removeFormat" title="Clear formatting"><svg viewBox="0 0 24 24"><path d="M6 5h12M12 5l-3 14M15 15l5 5M20 15l-5 5"/></svg></button>
+  </div>
+</header>
+
+<div class="work">
+  <aside class="rail" aria-label="Documents">
+    <h2 id="seedHead">Resumes</h2>
+    <div id="seedList"></div>
+    <h2>Your documents</h2>
+    <div id="userList"></div>
+    <button type="button" class="btn new" data-act="new">+ New document</button>
+  </aside>
+  <main class="canvas" id="canvas">
+    <div class="pagewrap" id="pagewrap">
+      <article class="page" id="page" contenteditable="true" spellcheck="true" aria-label="Document"></article>
+    </div>
+  </main>
+</div>
+
+<footer class="status">
+  <span id="pages" class="pill ok">1 page</span>
+  <span id="words">0 words</span>
+  <span id="saved">Not saved yet</span>
+  <span class="grow"></span>
+  <span class="zoom"><button type="button" id="zOut" aria-label="Zoom out">−</button><span id="zVal">100%</span><button type="button" id="zIn" aria-label="Zoom in">+</button></span>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileInput" accept=".md,.markdown,.txt,.html,.htm,.pdf,.docx" hidden>
+
+<script type="application/json" id="seeds">[]</script>
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const page = $('#page');
+const LS_KEY = 'resumeDesk.v1';
+const SEEDS = JSON.parse($('#seeds').textContent);
+const PX_PER_IN = 96;
+const SHEET = 11 * PX_PER_IN, GAP = 14, PERIOD = SHEET + GAP;
+const M_TOP = 0.4 * PX_PER_IN, M_BOT = 0.35 * PX_PER_IN;   // build.sh margins
+const NATIVE = window.webkit?.messageHandlers?.desk;        // running inside Resume Desk.app
+
+document.execCommand('defaultParagraphSeparator', false, 'p');
+
+/* ---------- markdown <-> html (same rules as render.py) ---------- */
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const inline = t => esc(t)
+  .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+  .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<i>$2</i>');
+
+function mdToHtml(md) {
+  const out = []; let list = null;
+  const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of md.split(/\r?\n/)) {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) continue;
+    let m;
+    if (line.startsWith('# ')) { close(); out.push(`<h1>${inline(line.slice(2))}</h1>`); }
+    else if (line.startsWith('## ')) { close(); out.push(`<h2>${inline(line.slice(3))}</h2>`); }
+    else if (line.startsWith('### ')) { close(); out.push(`<h3>${inline(line.slice(4))}</h3>`); }
+    else if (/^[-*•] /.test(line)) {
+      if (list !== 'ul') { close(); out.push('<ul>'); list = 'ul'; }
+      out.push(`<li>${inline(line.slice(2))}</li>`);
+    } else if ((m = line.match(/^\d+[.)] (.*)$/))) {
+      if (list !== 'ol') { close(); out.push('<ol>'); list = 'ol'; }
+      out.push(`<li>${inline(m[1])}</li>`);
+    } else { close(); out.push(`<p>${inline(line)}</p>`); }
+  }
+  close();
+  return out.join('\n');
+}
+
+function runsToMd(node) {
+  let s = '';
+  for (const n of node.childNodes) {
+    if (n.nodeType === 3) { s += n.nodeValue.replace(/ /g, ' '); continue; }
+    if (n.nodeType !== 1) continue;
+    if (n.tagName === 'BR') { s += '\n'; continue; }
+    const cs = getComputedStyle(n), parent = getComputedStyle(n.parentElement);
+    let inner = runsToMd(n);
+    const bold = +cs.fontWeight >= 600 && +parent.fontWeight < 600;
+    const ital = cs.fontStyle === 'italic' && parent.fontStyle !== 'italic';
+    const wrap = (t, mk) => {
+      const m = t.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      return m[2] ? `${m[1]}${mk}${m[2]}${mk}${m[3]}` : t;
+    };
+    if (ital) inner = wrap(inner, '*');
+    if (bold) inner = wrap(inner, '**');
+    s += inner;
+  }
+  return s;
+}
+
+function htmlToMd(root) {
+  const lines = [];
+  const push = (prefix, el, gapBefore) => {
+    const text = runsToMd(el).replace(/[ \t]+/g, ' ').trim();
+    if (!text) return;
+    if (gapBefore && lines.length) lines.push('');
+    text.split('\n').forEach(l => lines.push(prefix + l.trim()));
+  };
+  const walk = parent => {
+    for (const el of parent.children) {
+      const t = el.tagName;
+      if (t === 'H1') push('# ', el, true), lines.push('');
+      else if (t === 'H2') push('## ', el, true), lines.push('');
+      else if (t === 'H3') push('### ', el, true);
+      else if (t === 'UL' || t === 'OL') {
+        let i = 1;
+        for (const li of el.children) push(t === 'UL' ? '- ' : `${i++}. `, li, false);
+      } else if (t === 'DIV' || t === 'SECTION') walk(el);
+      else push('', el, false);
+    }
+  };
+  walk(root);
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
+/* ---------- storage ---------- */
+let state = { docs: [], current: null };
+function load() {
+  if (window.__DESK_STATE) state = window.__DESK_STATE;
+  else try { const raw = localStorage.getItem(LS_KEY); if (raw) state = JSON.parse(raw); } catch (e) {}
+  for (const s of SEEDS) {
+    if (!state.docs.find(d => d.id === s.id))
+      state.docs.push({ id: s.id, name: s.name, seed: true, html: mdToHtml(s.md), updated: null });
+  }
+  if (!state.docs.length) state.docs.push({ id: 'welcome', name: 'Welcome', seed: false, html: WELCOME, updated: null });
+  if (!state.docs.find(d => d.id === state.current)) state.current = state.docs[0].id;
+}
+function persist() {
+  const json = JSON.stringify(state);
+  if (NATIVE) { native('persist', { json }); return true; }
+  try { localStorage.setItem(LS_KEY, json); return true; } catch (e) { return false; }
+}
+function native(type, payload = {}) {
+  return NATIVE.postMessage({ type, ...payload }).catch(e => { toast(String(e.message || e)); return null; });
+}
+const WELCOME = `<h1>Resume Desk</h1>
+<p>Everything you type here saves on this phone as you go.</p>
+<h2>Get your resume in</h2>
+<ul><li>Tap <b>Open</b>, then Browse → iCloud Drive → <b>Resumes</b>, and pick a .md or .pdf file.</li>
+<li>A .md file opened that way saves straight back to the same file when you tap <b>Save</b>.</li>
+<li>You can also open Word (.docx), web pages (.html) and plain text.</li></ul>
+<h2>Get it out</h2>
+<ul><li><b>Download PDF</b> saves a real one-page PDF with selectable text, so applicant tracking systems can read it.</li>
+<li>File → <b>Share PDF</b> sends it by Mail, Messages or AirDrop.</li></ul>`;
+const cur = () => state.docs.find(d => d.id === state.current);
+const handles = {};   // docId -> FileSystemFileHandle (memory only)
+
+/* ---------- rendering the shell ---------- */
+const fmtTime = t => t ? new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'original';
+function renderLists() {
+  const item = d => `<div class="doc-item${d.id === state.current ? ' active' : ''}" data-id="${d.id}" role="button" tabindex="0">
+      <span class="n">${esc(d.name)}</span>
+      ${d.seed ? '<span></span>' : `<button type="button" class="x" data-del="${d.id}" aria-label="Delete ${esc(d.name)}">×</button>`}
+      <span class="m">${d.updated ? 'edited ' + fmtTime(d.updated) : (d.seed ? 'from soeasy' : 'new')}</span></div>`;
+  $('#seedList').innerHTML = state.docs.filter(d => d.seed).map(item).join('');
+  $('#seedHead').hidden = !SEEDS.length;
+  const mine = state.docs.filter(d => !d.seed);
+  $('#userList').innerHTML = mine.length ? mine.map(item).join('')
+    : '<p style="margin:2px 8px;color:var(--muted);font-size:12.5px">Open a file or start a new one.</p>';
+  $('#docPicker').innerHTML = state.docs.map(d =>
+    `<option value="${d.id}"${d.id === state.current ? ' selected' : ''}>${esc(d.name)}</option>`).join('');
+}
+function openDoc(id) {
+  if (cur()) saveLocal(true);
+  state.current = id;
+  const d = cur();
+  page.innerHTML = d.html || '<p><br></p>';
+  $('#docName').value = d.name; $('#sizeVal').value = 8.9;
+  persist(); renderLists(); refreshStatus();
+  $('#saved').textContent = d.updated ? 'Saved in this browser ' + fmtTime(d.updated) : 'Original version';
+  $('#canvas').scrollTop = 0;
+}
+
+/* ---------- autosave ---------- */
+let dirty = false, saveTimer = null;
+function saveLocal(quiet) {
+  const d = cur(); if (!d || !dirty) return;
+  d.html = cleanHtml(); d.name = $('#docName').value.trim() || 'Untitled document';
+  d.updated = Date.now(); dirty = false;
+  const ok = persist();
+  if (!quiet) $('#saved').textContent = ok ? 'Saved in this browser ' + fmtTime(d.updated) : 'Browser storage unavailable — save to Files';
+  renderLists();
+}
+function markDirty() {
+  dirty = true; $('#saved').textContent = 'Editing…';
+  clearTimeout(saveTimer); saveTimer = setTimeout(() => saveLocal(false), 700);
+  refreshStatus();
+}
+page.addEventListener('input', markDirty);
+$('#docName').addEventListener('input', markDirty);
+
+/* ---------- status: pages + words ---------- */
+/* Pagination, Docs-style: sheets are 11in tall with a gap between them. Any block
+   that would cross a sheet's bottom margin gets pushed to the top of the next sheet
+   with a temporary margin (data-pb). Those pushes never reach saved files. */
+const leafBlocks = () => $$('h1,h2,h3,p,li', page).filter(b => !b.querySelector('h1,h2,h3,p,li'));
+function clearBreaks() {
+  $$('[data-pb]', page).forEach(el => {
+    el.style.marginTop = ''; el.removeAttribute('data-pb');
+    if (!el.getAttribute('style')) el.removeAttribute('style');
+  });
+}
+function paginate() {
+  clearBreaks();
+  page.style.minHeight = '';
+  const pr = page.getBoundingClientRect();
+  const z = pr.width / (8.5 * PX_PER_IN) || 1;        // works with or without CSS zoom
+  const topOf = el => (el.getBoundingClientRect().top - page.getBoundingClientRect().top) / z;
+  let bottom = 0;
+  for (const b of leafBlocks()) {
+    let r = b.getBoundingClientRect();
+    let t = (r.top - page.getBoundingClientRect().top) / z, h = r.height / z;
+    const k = Math.floor(t / PERIOD);
+    const limit = k * PERIOD + SHEET - M_BOT;
+    if (t + h > limit + 0.5 && h < SHEET - M_TOP - M_BOT) {
+      const target = (k + 1) * PERIOD + M_TOP;
+      const base = parseFloat(getComputedStyle(b).marginTop) || 0;
+      b.dataset.pb = '1';
+      b.style.marginTop = (base + target - t) + 'px';
+      // sibling margins collapse, so correct once against where it actually landed
+      const miss = target - topOf(b);
+      if (Math.abs(miss) > 0.5) b.style.marginTop = (parseFloat(b.style.marginTop) + miss) + 'px';
+      t = topOf(b);
+    }
+    bottom = Math.max(bottom, t + h);
+  }
+  const n = Math.max(1, Math.floor(bottom / PERIOD) + 1);
+  page.style.minHeight = (n * SHEET + (n - 1) * GAP) + 'px';
+  return n;
+}
+let pages = 1;
+const pageCount = () => pages;
+// the document without pagination pushes (for saving and exporting)
+function cleanHtml() { clearBreaks(); const h = page.innerHTML; paginate(); return h; }
+
+function refreshStatus() {
+  const n = pages = paginate();
+  const pill = $('#pages');
+  const resume = /resume/i.test(cur()?.name || '') || !!cur()?.seed;
+  pill.textContent = n === 1 ? '1 page' : `${n} pages` + (resume ? ' — over one page' : '');
+  pill.className = 'pill ' + (n > 1 && resume ? 'warn' : 'ok');
+  const words = (page.innerText.match(/\S+/g) || []).length;
+  $('#words').textContent = `${words.toLocaleString()} words`;
+  syncToolbar();
+}
+
+/* ---------- toolbar ---------- */
+function blockAtCaret() {
+  const sel = getSelection(); if (!sel.rangeCount) return null;
+  let n = sel.anchorNode; if (!n || !page.contains(n)) return null;
+  if (n.nodeType === 3) n = n.parentElement;
+  return n.closest('h1,h2,h3,p,li,div') || null;
+}
+function selectedBlocks() {
+  const sel = getSelection(); if (!sel.rangeCount) return [];
+  const r = sel.getRangeAt(0);
+  const all = $$('h1,h2,h3,p,li', page).filter(b => r.intersectsNode(b));
+  return all.length ? all : [blockAtCaret()].filter(Boolean);
+}
+function syncToolbar() {
+  for (const c of ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'justifyCenter', 'justifyRight']) {
+    let on = false; try { on = document.queryCommandState(c); } catch (e) {}
+    $$(`.tb[data-cmd="${c}"]`).forEach(b => b.classList.toggle('on', on));
+  }
+  const b = blockAtCaret();
+  if (b) {
+    const tag = b.tagName.toLowerCase();
+    $('#blockStyle').value = ['h1', 'h2', 'h3'].includes(tag) ? tag : 'p';
+    const pt = parseFloat(getComputedStyle(b).fontSize) * 0.75;
+    if (document.activeElement !== $('#sizeVal')) $('#sizeVal').value = +pt.toFixed(1);
+  }
+}
+document.addEventListener('selectionchange', () => { if (page.contains(getSelection().anchorNode)) syncToolbar(); });
+
+function exec(cmd, val) {
+  if (cmd === 'selectAll') { page.focus(); }
+  document.execCommand(cmd, false, val ?? null);
+  page.focus(); markDirty();
+}
+function setBlock(tag) { page.focus(); document.execCommand('formatBlock', false, `<${tag}>`); markDirty(); }
+function setSize(pt) {
+  pt = Math.min(72, Math.max(6, Math.round(pt * 10) / 10));
+  const sel = getSelection();
+  if (sel.rangeCount && !sel.isCollapsed) {
+    // wrap just the selected text
+    const span = document.createElement('span');
+    span.style.fontSize = pt + 'pt';
+    try { span.appendChild(sel.getRangeAt(0).extractContents()); sel.getRangeAt(0).insertNode(span); }
+    catch (e) { selectedBlocks().forEach(b => b.style.fontSize = pt + 'pt'); }
+  } else {
+    selectedBlocks().forEach(b => b.style.fontSize = pt + 'pt');
+  }
+  $('#sizeVal').value = pt; markDirty();
+}
+
+document.addEventListener('mousedown', e => {
+  // keep the text selection when clicking toolbar/menu buttons
+  if (e.target.closest('.tb, .dropdown button, .size button')) e.preventDefault();
+});
+$$('[data-cmd]').forEach(b => b.addEventListener('click', () => { closeMenus(); exec(b.dataset.cmd); }));
+$$('[data-block]').forEach(b => b.addEventListener('click', () => { closeMenus(); setBlock(b.dataset.block); }));
+$('#blockStyle').addEventListener('change', e => setBlock(e.target.value));
+$('#sizeUp').addEventListener('click', () => setSize((+$('#sizeVal').value || 9) + 0.5));
+$('#sizeDown').addEventListener('click', () => setSize((+$('#sizeVal').value || 9) - 0.5));
+$('#sizeVal').addEventListener('change', e => { const v = parseFloat(e.target.value); if (v) setSize(v); });
+
+page.addEventListener('paste', e => {
+  const text = e.clipboardData.getData('text/plain');
+  if (!text) return;
+  e.preventDefault();
+  if (text.includes('\n')) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    document.execCommand('insertHTML', false, lines.map(l => `<p>${esc(l)}</p>`).join(''));
+  } else document.execCommand('insertText', false, text);
+});
+
+/* ---------- menus ---------- */
+function closeMenus() { $$('.menu.open').forEach(m => m.classList.remove('open')); }
+$$('.menu > button').forEach(b => b.addEventListener('click', e => {
+  const m = b.parentElement, was = m.classList.contains('open');
+  closeMenus(); if (!was) m.classList.add('open'); e.stopPropagation();
+}));
+$$('.menu > button').forEach(b => b.addEventListener('mouseenter', () => {
+  if ($('.menu.open') && !b.parentElement.classList.contains('open')) { closeMenus(); b.parentElement.classList.add('open'); }
+}));
+document.addEventListener('click', e => { if (!e.target.closest('.menu')) closeMenus(); });
+
+/* ---------- doc list ---------- */
+function onListClick(e) {
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    const d = state.docs.find(x => x.id === del.dataset.del);
+    if (d && confirm(`Delete "${d.name}" from this browser?`)) {
+      state.docs = state.docs.filter(x => x.id !== d.id);
+      if (!state.docs.length) state.docs.push({ id: 'welcome', name: 'Welcome', seed: false, html: WELCOME, updated: null });
+      if (state.current === d.id) { state.current = state.docs[0].id; dirty = false; openDoc(state.current); }
+      persist(); renderLists(); toast('Deleted');
+    }
+    return;
+  }
+  const it = e.target.closest('.doc-item'); if (it && it.dataset.id !== state.current) openDoc(it.dataset.id);
+}
+$('#seedList').addEventListener('click', onListClick);
+$('#userList').addEventListener('click', onListClick);
+$('.rail').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('doc-item')) openDoc(e.target.dataset.id); });
+$('#docPicker').addEventListener('change', e => openDoc(e.target.value));
+
+function newDoc(name, html) {
+  saveLocal(true);
+  const d = { id: 'd' + Date.now().toString(36), name, seed: false, html, updated: Date.now() };
+  state.docs.push(d); persist(); openDoc(d.id); return d;
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg, ms = 2600) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+/* ---------- saving files ---------- */
+const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+let downloadsNs;
+const downloadsReady = (window.claude?.use ? window.claude.use('downloads') : Promise.resolve(null))
+  .then(ns => (downloadsNs = ns)).catch(() => null);
+const safeName = () => ($('#docName').value.trim() || 'document').replace(/[\\/:*?"<>|]+/g, '-');
+const MIME = { md: 'text/markdown', html: 'text/html', txt: 'text/plain', pdf: 'application/pdf' };
+
+async function saveFile(filename, data, ext, { handleKey } = {}) {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: MIME[ext] + ';charset=utf-8' });
+  // 0) inside the iPhone app: native Save to Files (writes back to an opened .md)
+  if (NATIVE) {
+    const d = handleKey && state.docs.find(x => x.id === handleKey);
+    const path = d && d.path && d.path.toLowerCase().endsWith('.' + ext) ? d.path : null;
+    const res = await native('save', { filename, ext, b64: await toB64(blob), path });
+    if (!res) return null;
+    if (d && res.path && ext === 'md') { d.path = res.path; persist(); }
+    return res.msg;
+  }
+  // 1) real Save dialog (Chrome/Edge/Dia when opened as a local file)
+  if (window.showSaveFilePicker && !inFrame) {
+    try {
+      let h = handleKey && handles[handleKey];
+      if (!h || !h.name.endsWith('.' + ext)) {
+        h = await showSaveFilePicker({ suggestedName: filename,
+          types: [{ description: ext.toUpperCase(), accept: { [MIME[ext]]: ['.' + ext] } }] });
+      }
+      const w = await h.createWritable(); await w.write(blob); await w.close();
+      if (handleKey) handles[handleKey] = h;
+      return `Saved to ${h.name}`;
+    } catch (e) {
+      if (e.name === 'AbortError') return null;
+    }
+  }
+  // 2) the Claude viewer's download prompt
+  await downloadsReady;
+  if (downloadsNs) {
+    try { await downloadsNs.save({ filename, data: blob }); return `Saved ${filename}`; }
+    catch (e) {
+      if (e.code === 'declined') return null;
+      if (e.code === 'rate_limited') return 'A save prompt is already open';
+    }
+  }
+  // 3) plain browser download
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  return `Downloaded ${filename}`;
+}
+
+function exportHtml() {
+  const css = `body{font-family:Calibri,Carlito,Helvetica,sans-serif;font-size:9.2pt;line-height:1.1;font-variant-ligatures:none;max-width:7.5in;margin:.4in auto}
+h1{font-size:14pt;margin:0 0 1pt}h2{font-size:10.2pt;margin:5pt 0 1pt}h3{font-size:9.2pt;margin:3pt 0 1pt}
+p{margin:0;font-size:8.9pt}ul,ol{margin:1pt 0 3pt;padding-left:14pt}`;
+  return `<!doctype html>\n<html>\n<head><meta charset="utf-8"><title>${esc(safeName())}</title><style>${css}</style></head>\n<body>\n${cleanHtml()}\n</body>\n</html>\n`;
+}
+
+async function doSave(kind) {
+  saveLocal(false);
+  let msg;
+  if (kind === 'md' || kind === 'save' || kind === 'saveas') {
+    if (kind === 'saveas') delete handles[state.current];
+    msg = await saveFile(safeName() + '.md', htmlToMd(page), 'md', { handleKey: kind === 'md' ? null : state.current });
+  } else if (kind === 'html') msg = await saveFile(safeName() + '.html', exportHtml(), 'html');
+  else if (kind === 'txt') msg = await saveFile(safeName() + '.txt', page.innerText.replace(/\n{3,}/g, '\n\n'), 'txt');
+  else if (kind === 'pdf') {
+    toast('Building PDF…', 8000);
+    try {
+      const { blob, scale } = await buildPdf();
+      msg = await saveFile(safeName() + '.pdf', blob, 'pdf');
+      if (msg && scale < 1) msg += ` (shrunk to ${Math.round(scale * 100)}% to hold one page)`;
+    } catch (e) { msg = 'PDF failed: ' + (e.message || e); }
+  }
+  if (msg) { toast(msg, 4000); if (kind === 'save' || kind === 'saveas') $('#saved').textContent = msg; }
+  else $('#toast').classList.remove('show');
+}
+
+/* ---------- PDF: real selectable text (ATS-readable), not a screenshot ---------- */
+const loaded = {};
+function loadScript(src) {
+  if (NATIVE) src = 'lib/' + src.split('/').pop();   // the app ships these offline
+  return loaded[src] ||= new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.onload = res;
+    s.onerror = () => rej(new Error('could not load ' + src.split('/').pop())); document.head.appendChild(s);
+  });
+}
+const CP1252 = /[^\x20-\x7e -ÿ–—‘’“”•…€™]/g;
+const clean = s => s.replace(/ /g, ' ').replace(/[‐‑‒]/g, '-').replace(/ /g, ' ').replace(CP1252, '');
+
+function collectBlocks() {
+  const blocks = [];
+  const pushBlock = (el, marker, indentPx) => {
+    const cs = getComputedStyle(el);
+    const runs = [];
+    const walk = n => {
+      for (const c of n.childNodes) {
+        if (c.nodeType === 3) {
+          const ps = getComputedStyle(c.parentElement);
+          let deco = false;
+          for (let p = c.parentElement; p && p !== el.parentElement; p = p.parentElement)
+            if (getComputedStyle(p).textDecorationLine.includes('underline')) deco = true;
+          runs.push({ text: clean(c.nodeValue.replace(/\s+/g, ' ')), bold: +ps.fontWeight >= 600,
+            italic: ps.fontStyle === 'italic', underline: deco, size: parseFloat(ps.fontSize) * 0.75 });
+        } else if (c.nodeType === 1) {
+          if (c.tagName === 'BR') runs.push({ br: true });
+          else if (!/^(UL|OL)$/.test(c.tagName)) walk(c);
+        }
+      }
+    };
+    walk(el);
+    blocks.push({ runs, marker, indent: indentPx * 0.75, align: cs.textAlign,
+      mt: parseFloat(cs.marginTop) * 0.75, mb: parseFloat(cs.marginBottom) * 0.75,
+      size: parseFloat(cs.fontSize) * 0.75, lh: cs.lineHeight });
+  };
+  const walkList = (list, depth) => {
+    const lcs = getComputedStyle(list);
+    const pad = parseFloat(lcs.paddingLeft) * (depth + 1);
+    let i = 1;
+    for (const li of list.children) {
+      if (li.tagName !== 'LI') continue;
+      pushBlock(li, list.tagName === 'OL' ? `${i++}.` : '•', pad);
+      for (const sub of li.children) if (/^(UL|OL)$/.test(sub.tagName)) walkList(sub, depth + 1);
+    }
+    blocks.push({ spacer: parseFloat(lcs.marginBottom) * 0.75 });
+  };
+  const walkRoot = root => {
+    for (const el of root.children) {
+      if (/^(UL|OL)$/.test(el.tagName)) {
+        blocks.push({ spacer: parseFloat(getComputedStyle(el).marginTop) * 0.75 });
+        walkList(el, 0);
+      } else if (el.tagName === 'DIV' && el.querySelector('p,h1,h2,h3,ul,ol')) walkRoot(el);
+      else pushBlock(el, null, parseFloat(getComputedStyle(el).marginLeft) || 0);
+    }
+  };
+  walkRoot(page);
+  return blocks;
+}
+
+function layoutPdf(jsPDF, blocks, scale) {
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const W = 612, H = 792, ML = 36, MR = 36, MT = 28.8, MB = 25.2;
+  const LH = 1.16;                               // Helvetica needs a touch more than Calibri's 1.1
+  let y = MT, pages = 1, prevMb = 0;
+  const font = r => doc.setFont('helvetica', r.bold && r.italic ? 'bolditalic' : r.bold ? 'bold' : r.italic ? 'italic' : 'normal');
+  const newPage = () => { doc.addPage(); pages++; y = MT; };
+
+  for (const b of blocks) {
+    if (b.spacer != null) { prevMb = Math.max(prevMb, b.spacer * scale); continue; }
+    y += Math.max(prevMb, b.mt * scale);
+    const x0 = ML + b.indent, maxW = W - MR - x0;
+    // split runs into words (keeping style) and wrap
+    const words = [];
+    for (const r of b.runs) {
+      if (r.br) { words.push({ br: true }); continue; }
+      for (const piece of r.text.split(/(\s+)/)) if (piece) words.push({ ...r, text: piece, size: r.size * scale });
+    }
+    const lines = []; let line = [], lw = 0;
+    const flush = () => { while (line.length && /^\s+$/.test(line[line.length - 1].text)) line.pop(); lines.push(line); line = []; lw = 0; };
+    for (const w of words) {
+      if (w.br) { flush(); continue; }
+      font(w); doc.setFontSize(w.size);
+      const ww = doc.getTextWidth(w.text);
+      if (/^\s+$/.test(w.text) && !line.length) continue;
+      if (lw + ww > maxW && line.length && !/^\s+$/.test(w.text)) flush();
+      if (/^\s+$/.test(w.text) && !line.length) continue;
+      line.push({ ...w, w: ww }); lw += ww;
+    }
+    if (line.length || !lines.length) flush();
+
+    lines.forEach((ln, i) => {
+      const size = Math.max(b.size * scale, ...ln.map(w => w.size));
+      const lh = size * LH;
+      if (y + lh > H - MB) newPage();
+      const base = y + size * 0.86;
+      const width = ln.reduce((s, w) => s + w.w, 0);
+      let x = b.align === 'center' ? x0 + (maxW - width) / 2 : b.align === 'right' || b.align === 'end' ? x0 + maxW - width : x0;
+      if (i === 0 && b.marker) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(b.size * scale);
+        doc.text(b.marker, x0 - (b.marker === '•' ? 9 : 13) * scale, base);
+      }
+      for (const w of ln) {
+        font(w); doc.setFontSize(w.size); doc.text(w.text, x, base);
+        if (w.underline && w.text.trim()) { doc.setLineWidth(0.5); doc.line(x, base + 1.2, x + w.w, base + 1.2); }
+        x += w.w;
+      }
+      y += lh;
+    });
+    prevMb = b.mb * scale;
+  }
+  doc.setProperties({ title: safeName(), creator: 'Resume Desk' });
+  return { doc, pages };
+}
+
+async function buildPdf() {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  const { jsPDF } = window.jspdf;
+  const want = pageCount();
+  clearBreaks();
+  const blocks = collectBlocks();
+  paginate();
+  let scale = 1, out = layoutPdf(jsPDF, blocks, scale);
+  // the editor shows N pages; if Helvetica's wider glyphs spill onto N+1, shrink gently
+  while (out.pages > want && scale > 0.8) { scale = +(scale - 0.02).toFixed(2); out = layoutPdf(jsPDF, blocks, scale); }
+  return { blob: out.doc.output('blob'), scale };
+}
+
+/* ---------- opening files ---------- */
+async function toB64(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer()); let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+const fromB64 = (b64, name) => new File([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], name);
+// the app hands over files opened from Files / "Open in Resume Desk"
+window.deskImport = (name, b64, path) => importFile(fromB64(b64, name), null, path);
+async function importFile(file, handle, nativePath) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const name = file.name.replace(/\.[^.]+$/, '');
+  let html;
+  try {
+    if (ext === 'md' || ext === 'markdown') html = mdToHtml(await file.text());
+    else if (ext === 'txt') html = (await file.text()).split(/\r?\n/).filter(l => l.trim()).map(l => `<p>${esc(l)}</p>`).join('\n');
+    else if (ext === 'html' || ext === 'htm') html = sanitize(await file.text());
+    else if (ext === 'pdf') { toast('Reading PDF…', 8000); html = await pdfToHtml(await file.arrayBuffer()); }
+    else if (ext === 'docx') {
+      toast('Reading Word file…', 8000);
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+      html = sanitize((await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })).value);
+    } else { toast('That file type is not supported. Use .md, .txt, .html, .pdf or .docx.'); return; }
+  } catch (e) { toast(`Could not open ${file.name}: ${e.message || e}`, 5000); return; }
+  const d = newDoc(name, html || '<p><br></p>');
+  if (handle && ext === 'md') handles[d.id] = handle;   // Save writes straight back to this .md
+  if (nativePath && ext === 'md') { d.path = nativePath; persist(); }
+  toast(`Opened ${file.name}`);
+}
+
+function sanitize(src) {
+  const tpl = new DOMParser().parseFromString(src, 'text/html');
+  tpl.querySelectorAll('script,style,link,meta,iframe,object,embed,title').forEach(n => n.remove());
+  tpl.querySelectorAll('*').forEach(n => {
+    for (const a of [...n.attributes]) if (/^on/i.test(a.name) || (a.name === 'href' && /^\s*javascript:/i.test(a.value))) n.removeAttribute(a.name);
+    // drop the render.py inline margins/fonts so the editor's styles apply; keep alignment
+    if (n.style) { const al = n.style.textAlign; n.removeAttribute('style'); if (al) n.style.textAlign = al; }
+  });
+  return tpl.body.innerHTML;
+}
+
+async function pdfToHtml(buf) {
+  const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  await loadScript(base + 'pdf.min.js');
+  const lib = window.pdfjsLib;
+  lib.GlobalWorkerOptions.workerSrc = (NATIVE ? 'lib/' : base) + 'pdf.worker.min.js';
+  let pdf;
+  try { pdf = await lib.getDocument({ data: buf.slice(0) }).promise; }
+  catch (e) { pdf = await lib.getDocument({ data: buf.slice(0), disableWorker: true }).promise; }
+  const lines = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const pg = await pdf.getPage(p);
+    try { await pg.getOperatorList(); } catch (e) {}
+    const tc = await pg.getTextContent();
+    const rows = new Map();
+    for (const it of tc.items) {
+      if (!it.str) continue;
+      const y = Math.round(it.transform[5]);
+      const key = [...rows.keys()].find(k => Math.abs(k - y) <= 2) ?? y;
+      if (!rows.has(key)) rows.set(key, []);
+      let bold = false;
+      try { const f = pg.commonObjs.get(it.fontName); bold = /bold|black|heavy|semibold/i.test(f?.name || ''); } catch (e) {}
+      rows.get(key).push({ x: it.transform[4], str: it.str, size: Math.hypot(it.transform[2], it.transform[3]), bold });
+    }
+    [...rows.entries()].sort((a, b) => b[0] - a[0]).forEach(([, items]) => {
+      items.sort((a, b) => a.x - b.x);
+      lines.push({ items, size: Math.max(...items.map(i => i.size)) });
+    });
+  }
+  const sizes = lines.map(l => l.size).sort((a, b) => a - b);
+  const median = sizes[Math.floor(sizes.length / 2)] || 10;
+  const maxSize = sizes[sizes.length - 1] || median;
+  const out = []; let inList = false;
+  for (const l of lines) {
+    let htmlLine = '', lastBold = null;
+    for (const it of l.items) {
+      if (it.bold !== lastBold) { if (lastBold) htmlLine += '</b>'; if (it.bold) htmlLine += '<b>'; lastBold = it.bold; }
+      htmlLine += esc(it.str);
+    }
+    if (lastBold) htmlLine += '</b>';
+    htmlLine = htmlLine.replace(/<\/b><b>/g, '').trim();
+    const plain = l.items.map(i => i.str).join('').trim();
+    if (!plain) continue;
+    const allBold = l.items.every(i => i.bold || !i.str.trim());
+    const bullet = /^[•●▪◦‣\-–]\s*/.test(plain);
+    if (!bullet && inList) { out.push('</ul>'); inList = false; }
+    if (bullet) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push(`<li>${htmlLine.replace(/^(<b>)?[•●▪◦‣\-–]\s*/, '$1')}</li>`);
+    } else if (l.size >= maxSize * 0.98 && l.size > median * 1.3) out.push(`<h1>${plain && esc(plain)}</h1>`);
+    else if (l.size > median * 1.08 || (allBold && plain === plain.toUpperCase() && /[A-Z]/.test(plain))) out.push(`<h2>${esc(plain)}</h2>`);
+    else out.push(`<p>${htmlLine}</p>`);
+  }
+  if (inList) out.push('</ul>');
+  return out.join('\n');
+}
+
+async function openPicker() {
+  if (NATIVE) { const r = await native('open'); if (r) importFile(fromB64(r.b64, r.name), null, r.path); return; }
+  if (window.showOpenFilePicker && !inFrame) {
+    try {
+      const [h] = await showOpenFilePicker({ types: [{ description: 'Documents',
+        accept: { 'text/markdown': ['.md', '.markdown'], 'text/plain': ['.txt'], 'text/html': ['.html', '.htm'],
+          'application/pdf': ['.pdf'], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] } }] });
+      return importFile(await h.getFile(), h);
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  $('#fileInput').click();
+}
+$('#fileInput').addEventListener('change', e => { const f = e.target.files[0]; if (f) importFile(f); e.target.value = ''; });
+// drop a file anywhere to open it
+document.addEventListener('dragover', e => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+document.addEventListener('drop', e => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); importFile(f); } });
+
+/* ---------- find & replace ---------- */
+function findReplace() {
+  const find = prompt('Find:'); if (!find) return;
+  const repl = prompt(`Replace "${find}" with (leave empty to just count):`);
+  const walker = document.createTreeWalker(page, NodeFilter.SHOW_TEXT);
+  let n, count = 0;
+  while ((n = walker.nextNode())) {
+    const parts = n.nodeValue.split(find);
+    if (parts.length > 1) { count += parts.length - 1; if (repl !== null && repl !== '') n.nodeValue = parts.join(repl); }
+  }
+  if (repl) { markDirty(); toast(`Replaced ${count} match${count === 1 ? '' : 'es'}`); }
+  else toast(`${count} match${count === 1 ? '' : 'es'} for "${find}"`);
+}
+
+/* ---------- actions ---------- */
+const ACTIONS = {
+  new: () => newDoc('Untitled document', '<h1>Untitled document</h1><p><br></p>'),
+  open: openPicker,
+  duplicate: () => { const d = cur(); saveLocal(true); newDoc(d.name + ' (copy)', cleanHtml()); toast('Copy created'); },
+  save: () => doSave('save'), saveas: () => doSave('saveas'),
+  pdf: () => doSave('pdf'), md: () => doSave('md'), html: () => doSave('html'), txt: () => doSave('txt'),
+  print: () => { saveLocal(true); NATIVE ? native('print') : window.print(); },
+  share: async () => {
+    toast('Building PDF…', 8000);
+    try { const { blob } = await buildPdf(); await native('share', { filename: safeName() + '.pdf', b64: await toB64(blob) }); }
+    catch (e) { toast('PDF failed: ' + (e.message || e)); return; }
+    $('#toast').classList.remove('show');
+  },
+  find: findReplace,
+  revert: () => {
+    const d = cur(), seed = SEEDS.find(s => s.id === d.id);
+    if (!seed) { toast('Only the built-in resumes have an original to revert to'); return; }
+    if (!confirm(`Throw away your edits to "${d.name}" and restore the original?`)) return;
+    page.innerHTML = mdToHtml(seed.md); d.html = page.innerHTML; d.updated = null; d.name = seed.name;
+    $('#docName').value = seed.name; dirty = false; persist(); renderLists(); refreshStatus(); toast('Restored the original');
+  },
+};
+$$('[data-act]').forEach(b => b.addEventListener('click', () => { closeMenus(); ACTIONS[b.dataset.act](); }));
+
+document.addEventListener('keydown', e => {
+  const mod = e.metaKey || e.ctrlKey; if (!mod) return;
+  const k = e.key.toLowerCase();
+  if (k === 's') { e.preventDefault(); doSave(e.shiftKey ? 'saveas' : 'save'); }
+  else if (k === 'o') { e.preventDefault(); openPicker(); }
+  else if (k === 'p') { e.preventDefault(); ACTIONS.print(); }
+  else if (k === 'f' && !e.shiftKey) { e.preventDefault(); findReplace(); }
+  else if (k === '\\') { e.preventDefault(); exec('removeFormat'); }
+});
+
+/* ---------- zoom (fits the page on a phone) ---------- */
+let zoom = 1, userZoom = false;
+function applyZoom() {
+  $('#pagewrap').style.zoom = zoom; $('#zVal').textContent = Math.round(zoom * 100) + '%';
+}
+function fitZoom() {
+  if (userZoom) return;
+  const avail = $('#canvas').clientWidth - 32;
+  zoom = Math.min(1, Math.max(0.35, avail / (8.5 * PX_PER_IN)));
+  applyZoom();
+}
+$('#zIn').addEventListener('click', () => { userZoom = true; zoom = Math.min(2, +(zoom + 0.1).toFixed(2)); applyZoom(); });
+$('#zOut').addEventListener('click', () => { userZoom = true; zoom = Math.max(0.3, +(zoom - 0.1).toFixed(2)); applyZoom(); });
+addEventListener('resize', fitZoom);
+addEventListener('beforeunload', () => saveLocal(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveLocal(true); });
+
+/* ---------- boot ---------- */
+if (NATIVE) { $('#shareItem').hidden = false; document.documentElement.classList.add('native'); }
+load(); renderLists(); openDoc(state.current); fitZoom();
+if (document.fonts) document.fonts.ready.then(refreshStatus);
+})();
+</script>
+
+</body>
+</html>
