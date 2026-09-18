@@ -13,6 +13,8 @@ final class EditorController: UIViewController, WKScriptMessageHandlerWithReply,
     private var pickerDone: (([URL]) -> Void)?
     private var loaded = false
     private var pendingJS: [String] = []
+    /// CI self-test: RESUMEDESK_DEMO=1 loads web/demo.md, builds a PDF, logs to Documents/demo.log
+    private let demo = ProcessInfo.processInfo.environment["RESUMEDESK_DEMO"] == "1"
 
     private var stateURL: URL {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -28,7 +30,7 @@ final class EditorController: UIViewController, WKScriptMessageHandlerWithReply,
         // documents live in Application Support (not WebKit's localStorage), handed to the page at start
         let ucc = WKUserContentController()
         var saved = (try? String(contentsOf: stateURL, encoding: .utf8)) ?? "null"
-        if (try? JSONSerialization.jsonObject(with: Data(saved.utf8))) == nil { saved = "null" }
+        if demo || (try? JSONSerialization.jsonObject(with: Data(saved.utf8))) == nil { saved = "null" }
         ucc.addUserScript(WKUserScript(source: "window.__DESK_STATE = \(saved);",
                                        injectionTime: .atDocumentStart, forMainFrameOnly: true))
         ucc.addScriptMessageHandler(self, contentWorld: .page, name: "desk")
@@ -52,6 +54,14 @@ final class EditorController: UIViewController, WKScriptMessageHandlerWithReply,
 
         guard let dir = Bundle.main.url(forResource: "web", withExtension: nil) else { return }
         web.loadFileURL(dir.appendingPathComponent("editor.html"), allowingReadAccessTo: dir)
+        if demo {
+            try? FileManager.default.removeItem(at: demoLog)
+            importURL(dir.appendingPathComponent("demo.md"), then: "setTimeout(window.deskDemo, 1500)")
+        }
+    }
+
+    private var demoLog: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("demo.log")
     }
 
     // MARK: page -> app
@@ -71,6 +81,12 @@ final class EditorController: UIViewController, WKScriptMessageHandlerWithReply,
         case "open": return await open()
         case "share": return share(body)
         case "print": printPage(); return (true, nil)
+        case "log":
+            let line = "DESKDEMO \((body["msg"] as? String) ?? "")\n"
+            print(line, terminator: "")
+            if let h = try? FileHandle(forWritingTo: demoLog) { h.seekToEndOfFile(); h.write(Data(line.utf8)); try? h.close() }
+            else { try? line.write(to: demoLog, atomically: true, encoding: .utf8) }
+            return (true, nil)
         default: return (nil, "Unknown request \(type)")
         }
     }
@@ -156,14 +172,14 @@ final class EditorController: UIViewController, WKScriptMessageHandlerWithReply,
 
     // MARK: "Open in Resume Desk" from Files, Mail, etc.
 
-    func importURL(_ url: URL) {
+    func importURL(_ url: URL, then followUp: String? = nil) {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let data = try? Data(contentsOf: url) else { return }
         let args: [Any] = [url.lastPathComponent, data.base64EncodedString(), Bookmarks.store(url)]
         guard let json = try? JSONSerialization.data(withJSONObject: args),
               let list = String(data: json, encoding: .utf8) else { return }
-        let js = "window.deskImport(...\(list))"
+        let js = "window.deskImport(...\(list))" + (followUp.map { ".then(() => { \($0) })" } ?? "")
         if loaded { web.evaluateJavaScript(js) } else { pendingJS.append(js) }
     }
 

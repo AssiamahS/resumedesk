@@ -899,7 +899,7 @@ async function buildPdf() {
   let scale = 1, out = layoutPdf(jsPDF, blocks, scale);
   // the editor shows N pages; if Helvetica's wider glyphs spill onto N+1, shrink gently
   while (out.pages > want && scale > 0.8) { scale = +(scale - 0.02).toFixed(2); out = layoutPdf(jsPDF, blocks, scale); }
-  return { blob: out.doc.output('blob'), scale };
+  return { blob: out.doc.output('blob'), scale, pages: out.pages };
 }
 
 /* ---------- opening files ---------- */
@@ -1081,6 +1081,22 @@ $('#zOut').addEventListener('click', () => { userZoom = true; zoom = Math.max(0.
 addEventListener('resize', fitZoom);
 addEventListener('beforeunload', () => saveLocal(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveLocal(true); });
+
+/* ---------- simulator self-test (RESUMEDESK_DEMO=1) ---------- */
+window.deskDemo = async () => {
+  const log = m => NATIVE ? native('log', { msg: m }) : console.log(m);
+  try {
+    if (document.fonts) await document.fonts.ready;
+    refreshStatus();
+    log(`doc="${cur().name}" pages=${pages} ${$('#words').textContent}`);
+    const { blob, scale, pages: pdfPages } = await buildPdf();
+    log(`pdf bytes=${blob.size} pages=${pdfPages} scale=${scale}`);
+    const back = await pdfToHtml(await blob.arrayBuffer());
+    log(`pdf re-import blocks=${(back.match(/<(h1|h2|p|li)>/g) || []).length} name_ok=${back.includes(cur().name.split(' ')[0])}`);
+    log(`md lines=${htmlToMd(page).split('\n').length}`);
+    log('DEMO OK');
+  } catch (e) { log('DEMO FAILED ' + (e.message || e)); }
+};
 
 /* ---------- boot ---------- */
 if (NATIVE) { $('#shareItem').hidden = false; document.documentElement.classList.add('native'); }
